@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#00577a">
+  <title>National Landsliding Service</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <style>
+    :root{--ink:#102733;--blue:#00577a;--line:#b9cbd3;--paper:#fff;--bg:#eaf2f5;--watch:#e7c51d;--advisory:#e67e22;--warning:#e1262f;--emergency:#7928b4}
+    *{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.4 Arial,Helvetica,sans-serif}button{font:inherit}
+    header{background:#07394f;color:#fff;border-bottom:5px solid #007fa8;padding:15px max(18px,calc((100vw - 1480px)/2))}.brand{display:flex;align-items:center;gap:12px}.brand img{width:46px;height:46px}.brand b{display:block;font-size:1.25rem;letter-spacing:.04em}.brand span{opacity:.82;font-size:.9rem}
+    nav{display:flex;gap:0;overflow:auto;background:#fff;border-bottom:1px solid var(--line);padding-left:max(10px,calc((100vw - 1480px)/2))}nav button{padding:14px 20px;border:0;border-right:1px solid var(--line);background:#fff;color:#26434f;font-weight:700;cursor:pointer;white-space:nowrap}nav button.active{background:var(--blue);color:white}
+    main{max-width:1480px;margin:20px auto;padding:0 14px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px}.panel{background:var(--paper);border:1px solid var(--line)}.panel-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}h1{font-size:1.65rem;margin:0;font-weight:500}.meta{font-size:.85rem;color:#5d737d}
+    #mapWrap{position:relative;background:#d7f2f4;min-height:540px}svg{display:block;width:100%;height:auto;min-height:540px}.county{fill:#fafcfc;stroke:#d5e0e4;stroke-width:.28}.state{fill:none;stroke:#607985;stroke-width:1.1;pointer-events:none}.risk,.alert-shape{stroke-width:2;vector-effect:non-scaling-stroke}.alert-shape{fill-opacity:.55;stroke:#192d35}.risk{fill-opacity:.5;stroke-opacity:.9}.empty{position:absolute;top:16px;left:16px;background:rgba(255,255,255,.94);border:1px solid var(--line);padding:9px 12px;font-weight:700;display:none}.loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.7);font-weight:700}
+    .legend{display:flex;gap:18px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line);font-size:.88rem}.key{display:flex;align-items:center;gap:7px}.swatch{width:18px;height:18px;border:1px solid rgba(0,0,0,.28)}
+    aside{background:#fff;border:1px solid var(--line);padding:20px;display:flex;flex-direction:column;min-height:650px}aside h2{font-size:1.35rem;font-weight:500;margin:3px 0 14px}.alert{border-top:5px solid var(--blue);padding:13px 0;border-bottom:1px solid var(--line)}.alert h3{margin:0 0 5px;font-size:1rem}.alert p{margin:3px 0;color:#4e6671;font-size:.9rem}.alert button{margin-top:7px;border:1px solid var(--line);background:#f5f9fa;padding:6px 9px;cursor:pointer}.notify{margin-top:auto;border-top:1px solid var(--line);padding-top:16px}.notify button{width:100%;background:#075f83;color:#fff;border:0;padding:11px;font-weight:700;cursor:pointer}.status{margin-top:10px;font-size:.82rem;color:#627984}.source{position:absolute;right:8px;bottom:7px;background:rgba(255,255,255,.9);padding:4px 7px;font-size:.75rem;color:#4e6671}.info-view{display:none;min-height:540px;padding:22px;background:#f7fafb;overflow:auto}.scale-grid{display:grid;gap:10px}.scale-row{display:grid;grid-template-columns:86px 1fr;gap:16px;background:#fff;border:1px solid var(--line);border-left:8px solid var(--level);padding:14px}.scale-row b{font-size:1.15rem}.record{background:#fff;border:1px solid var(--line);border-left:6px solid #5b7480;padding:14px;margin-bottom:10px}.record h3{margin:0 0 5px}.record p{margin:4px 0;color:#4e6671}.rating{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.rating button{border:1px solid #9db1ba;background:#f3f7f8;padding:6px 9px;cursor:pointer}.rating button.selected{background:#07394f;color:#fff}.criteria{margin:0;padding-left:19px;columns:2}.criteria li{margin:5px 0}.notice{background:#e6f3f7;border-left:5px solid #087ca2;padding:12px;margin-bottom:16px}
+    @media(max-width:900px){main{grid-template-columns:1fr;margin-top:10px}aside{min-height:0}#mapWrap,svg{min-height:410px}.panel-head{align-items:flex-start;gap:8px;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header><div class="brand"><img src="icon-192.png" alt=""><div><b>NATIONAL LANDSLIDING SERVICE</b><span>United States landslide monitoring</span></div></div></header>
+  <nav aria-label="NLS sections"><button class="active" data-view="alerts">Warnings</button><button data-view="1">Day 1 outlook</button><button data-view="2">Day 2 outlook</button><button data-view="3">Day 3 outlook</button><button data-view="landslides">Landslides</button><button data-view="events">Events</button><button data-view="scale">LS scale</button></nav>
+  <main>
+    <section class="panel"><div class="panel-head"><h1 id="title">Landslide alerts</h1><span class="meta" id="updated">Connecting to live data…</span></div><div id="mapWrap"><svg id="map" viewBox="0 0 1100 650" role="img" aria-label="Map of landslide products in the United States"></svg><div class="empty" id="empty">No active NLS polygons at this update.</div><div class="loading" id="loading">Loading current federal data…</div><span class="source">NOAA/NWS · NOAA/WPC · USGS · U.S. Census boundaries</span></div><div class="info-view" id="infoView"></div><div class="legend" id="legend"></div></section>
+    <aside><span class="meta">LATEST ISSUANCE</span><h2>Alert desk</h2><div id="alertList"></div><div class="notify"><button id="notify">Enable alert notifications</button><div class="status" id="status">The map checks for changes every minute.</div></div></aside>
+  </main>
+  <script>
+  (()=>{
+    const WPC='https://mapservices.weather.noaa.gov/vector/rest/services/hazards/wpc_precip_hazards/MapServer';
+    const COLORS={watch:'#e7c51d',advisory:'#e67e22',warning:'#e1262f',emergency:'#7928b4'};
+    const LEVELS={1:['Marginal','5%+','#f1d54a'],2:['Slight','10%+','#e6902b'],3:['Enhanced','25%+','#dc493a'],4:['High','60%+','#813b91']};
+    const SCALE=[
+      ['LS-1','#c8e6c9','Very weak or minor movement; little or no damage and no serious injuries.'],
+      ['LS-2','#dcedc8','Limited slide; localized cleanup, minor property or road damage.'],
+      ['LS-3','#fff59d','Damaging slide; structures, roads, utilities, or people are meaningfully affected.'],
+      ['LS-4','#ffcc80','Major slide; serious injuries, major infrastructure damage, evacuations, or large losses.'],
+      ['LS-5','#ff8a65','Severe slide; deaths possible, many structures affected, or extreme community disruption.'],
+      ['LS-6','#ef5350','Devastating slide; multiple deaths, widespread destruction, or regional infrastructure failure.'],
+      ['LS-7','#8e24aa','Catastrophic landslide disaster with exceptional loss of life, destruction, or long-term displacement.']
+    ];
+    const TERMS=/\b(landslide|debris[- ]?flow|mudslide|mud[- ]?flow|rockslide|rockfall)\b/i;
+    const HYDRO=/^(Flood Watch|Flash Flood Warning|Flood Advisory)$/i;
+    const FIPS={AL:'01',AK:'02',AZ:'04',AR:'05',CA:'06',CO:'08',CT:'09',DE:'10',DC:'11',FL:'12',GA:'13',HI:'15',ID:'16',IL:'17',IN:'18',IA:'19',KS:'20',KY:'21',LA:'22',ME:'23',MD:'24',MA:'25',MI:'26',MN:'27',MS:'28',MO:'29',MT:'30',NE:'31',NV:'32',NH:'33',NJ:'34',NM:'35',NY:'36',NC:'37',ND:'38',OH:'39',OK:'40',OR:'41',PA:'42',RI:'44',SC:'45',SD:'46',TN:'47',TX:'48',UT:'49',VT:'50',VA:'51',WA:'53',WV:'54',WI:'55',WY:'56',PR:'72'};
+    let counties,states,susceptibility,alerts=[],outlooks=[],view='alerts',seen=new Set(JSON.parse(localStorage.getItem('nls-seen')||'[]')),records=JSON.parse(localStorage.getItem('nls-records')||'[]');
+    const svg=d3.select('#map'), projection=d3.geoAlbersUsa().translate([550,325]).scale(1320), path=d3.geoPath(projection);
+    const $=s=>document.querySelector(s);
+    function ringArea(r){let a=0;for(let i=0,j=r.length-1;i<r.length;j=i++)a+=(r[j][0]*r[i][1]-r[i][0]*r[j][1]);return a/2}
+    function normalize(g){if(!g)return g;if(g.type==='Polygon')return {...g,coordinates:g.coordinates.map(r=>ringArea(r)>0?[...r].reverse():r)};if(g.type==='MultiPolygon')return {...g,coordinates:g.coordinates.map(p=>p.map(r=>ringArea(r)>0?[...r].reverse():r))};if(g.type==='GeometryCollection')return {...g,geometries:g.geometries.map(normalize)};return g}
+    function fullText(f){let p=f.properties||{};return [p.event,p.headline,p.description,p.instruction].filter(Boolean).join(' ')}
+    function category(f){let p=f.properties||{},t=(p.event||'')+' '+(p.headline||'');if(/emergency/i.test(t)||(p.severity==='Extreme'&&p.urgency==='Immediate'))return'emergency';if(/warning/i.test(t))return'warning';if(/advisory/i.test(t))return'advisory';return'watch'}
+    async function geometry(f){if(f.geometry)return normalize(f.geometry);let gs=await Promise.all([...(f.properties?.affectedZones||[])].map(u=>fetch(u).then(r=>r.ok?r.json():null).then(z=>z?.geometry?normalize(z.geometry):null).catch(()=>null)));gs=gs.filter(Boolean);return gs.length?{type:'GeometryCollection',geometries:gs}:null}
+    function statesFor(f){let s=new Set;for(let u of(f.properties?.affectedZones||[])){let m=u.match(/\/([A-Z]{2})[CZ]\d+$/i);if(m&&FIPS[m[1].toUpperCase()])s.add(FIPS[m[1].toUpperCase()])}return s}
+    function susceptible(g,min,allowed){return counties.features.filter(c=>{let id=String(c.id).padStart(5,'0');if(allowed?.size&&!allowed.has(id.slice(0,2)))return false;return (susceptibility[id]?.[0]||0)>=min&&d3.geoContains(g,d3.geoCentroid(c))})}
+    async function loadAlerts(nws,wpc1){let candidates=(nws.features||[]).filter(f=>TERMS.test(fullText(f))||HYDRO.test(f.properties?.event||''));let direct=await Promise.all(candidates.map(async f=>{let p=f.properties||{},isDirect=TERMS.test(fullText(f)),g=await geometry(f);if(!g)return null;let cat=isDirect?category(f):(/watch/i.test(p.event||'')?'watch':'advisory');if(!isDirect&&!susceptible(g,cat==='watch'?.35:.65,statesFor(f)).length)return null;return{id:isDirect?f.id:f.id+'#nls-'+cat,event:isDirect?(p.event||'Landslide alert'):'Landslide '+cat[0].toUpperCase()+cat.slice(1),category:cat,headline:isDirect?(p.headline||p.event):'Landslide '+cat[0].toUpperCase()+cat.slice(1)+' — '+p.event,areaDesc:isDirect?p.areaDesc:'Susceptible terrain within '+(p.areaDesc||'the rainfall area'),sent:p.sent||new Date().toISOString(),expires:p.expires||'',description:isDirect?(p.description||''):('An active '+p.event+' overlaps terrain with elevated USGS landslide susceptibility.'),geometry:g}}));
+      let watches=[];(wpc1.features||[]).forEach((f,i)=>{let level=+f.properties?.dn||1;if(level<2||!f.geometry)return;let cs=susceptible(normalize(f.geometry),.65);if(!cs.length)return;watches.push({id:'wpc-'+(f.properties?.objectid||i)+'-'+(f.properties?.issue_time||''),event:'Landslide Watch',category:'watch',headline:'Landslide Watch — '+(f.properties?.outlook||'excessive-rainfall risk'),areaDesc:'High-susceptibility counties within the Day 1 rainfall risk area',sent:f.properties?.issue_time||new Date().toISOString(),expires:f.properties?.end_time||'',description:'A NOAA/WPC Slight-or-greater rainfall polygon overlaps high USGS landslide-susceptibility terrain.',geometry:{type:'GeometryCollection',geometries:cs.map(c=>normalize(c.geometry))}})});return[...direct.filter(Boolean),...watches].sort((a,b)=>Date.parse(b.sent)-Date.parse(a.sent))}
+    function drawBase(){svg.selectAll('*').remove();svg.append('g').selectAll('path').data(counties.features).join('path').attr('class','county').attr('d',path);svg.append('path').datum(topojson.mesh(window.topology,window.topology.objects.states,(a,b)=>a!==b)).attr('class','state').attr('d',path)}
+    function recordMarkup(r,rateable){
+      let buttons=rateable?`<div class="rating">${['LS-UR','LS-1','LS-2','LS-3','LS-4','LS-5','LS-6','LS-7'].map(x=>`<button data-record="${escapeHtml(r.id)}" data-rating="${x}" class="${r.rating===x?'selected':''}">${x}</button>`).join('')}</div>`:'';
+      return `<article class="record"><h3>${escapeHtml(r.headline)}</h3><p><b>${escapeHtml(r.rating||'LS-UR')}</b> · ${escapeHtml(r.areaDesc||'Area unavailable')}</p><p>First recorded ${new Date(r.recordedAt).toLocaleString()}</p>${buttons}</article>`;
+    }
+    function renderInfo(){
+      $('#mapWrap').style.display='none';$('#infoView').style.display='block';$('#legend').innerHTML='';$('#empty').style.display='none';
+      if(view==='scale'){
+        $('#title').textContent='NLS landslide scale';
+        $('#infoView').innerHTML=`<div class="notice"><b>LS-UR</b> means the event is recorded but not yet rated.</div><div class="scale-grid">${SCALE.map(s=>`<div class="scale-row" style="--level:${s[1]}"><b>${s[0]}</b><span>${s[2]}</span></div>`).join('')}</div><h2>Rating evidence</h2><ul class="criteria"><li>Deaths and missing people</li><li>Injuries and rescues</li><li>Homes destroyed or damaged</li><li>Businesses and public buildings affected</li><li>Road, bridge, rail, and airport closures</li><li>Power, water, gas, and communication failures</li><li>Evacuations and displacement</li><li>Estimated financial damage</li><li>Slide volume, speed, and travel distance</li><li>Debris depth and runout area</li><li>River blockage or flooding caused</li><li>Duration and continuing movement</li><li>Emergency response required</li><li>Population directly threatened</li></ul>`;
+      }else{
+        $('#title').textContent=view==='landslides'?'Landslide record':'Past event record';
+        let intro=view==='landslides'?'Confirmed or strongly indicated landslide events collected from this point forward. New entries begin as LS-UR and can be rated below.':'A chronological record beginning when this GitHub Pages edition starts detecting events.';
+        $('#infoView').innerHTML=`<div class="notice">${intro} Ratings in this easy edition are saved on this device.</div>${records.length?records.map(r=>recordMarkup(r,view==='landslides')).join(''):'<article class="record"><h3>Record started</h3><p>No qualifying landslide event has been detected since this record began.</p></article>'}`;
+        $('#infoView').querySelectorAll('[data-rating]').forEach(b=>b.onclick=()=>{let r=records.find(x=>x.id===b.dataset.record);if(r){r.rating=b.dataset.rating;localStorage.setItem('nls-records',JSON.stringify(records));renderInfo()}});
+      }
+      $('#alertList').innerHTML='<p class="meta">The live alert engine continues checking every minute while you view this section.</p>';
+    }
+    function render(){
+      if(['scale','landslides','events'].includes(view)){renderInfo();return}
+      $('#mapWrap').style.display='block';$('#infoView').style.display='none';drawBase();
+      let items=view==='alerts'?alerts:outlooks.filter(o=>String(o.day)===view),layer=svg.append('g');
+      if(view==='alerts'){
+        layer.selectAll('path').data(items).join('path').attr('class','alert-shape').attr('d',d=>path(d.geometry)).attr('fill',d=>COLORS[d.category]).attr('stroke',d=>COLORS[d.category]);
+        $('#title').textContent='Landslide alerts';
+        $('#legend').innerHTML=Object.entries(COLORS).map(([n,c])=>`<span class="key"><i class="swatch" style="background:${c}"></i>Landslide ${n[0].toUpperCase()+n.slice(1)}</span>`).join('');
+        $('#alertList').innerHTML=items.map(a=>`<article class="alert" style="border-color:${COLORS[a.category]}"><h3>${escapeHtml(a.event)}</h3><p><b>${escapeHtml(a.areaDesc||'')}</b></p><p>${escapeHtml(a.description||'')}</p></article>`).join('');
+      }else{
+        layer.selectAll('path').data(items).join('path').attr('class','risk').attr('d',d=>path(d.geometry)).attr('fill',d=>LEVELS[d.level][2]).attr('stroke',d=>LEVELS[d.level][2]);
+        $('#title').textContent='Day '+view+' landslide outlook';
+        $('#legend').innerHTML=Object.entries(LEVELS).map(([n,v])=>`<span class="key"><i class="swatch" style="background:${v[2]}"></i>${v[0]} ${v[1]} · Intensity ${n==1?1:n==4?3:2}</span>`).join('');
+        $('#alertList').innerHTML='<p class="meta">Outlook polygons use NOAA/WPC excessive-rainfall risk as the rainfall trigger. Terrain is screened with USGS susceptibility data.</p>';
+      }
+      $('#empty').style.display=items.length?'none':'block';
+    }
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+    async function refresh(){try{let q=d=>`${WPC}/${d-1}/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=geojson`;let [nws,...days]=await Promise.all([fetch('https://api.weather.gov/alerts/active?status=actual').then(r=>r.json()),...([1,2,3].map(d=>fetch(q(d)).then(r=>r.json())))]);outlooks=days.flatMap((p,i)=>(p.features||[]).map((f,j)=>({id:`${i+1}-${j}`,day:i+1,level:Math.max(1,Math.min(4,+f.properties?.dn||1)),geometry:normalize(f.geometry)})));alerts=await loadAlerts(nws,days[0]);for(let a of alerts){if(!['warning','emergency'].includes(a.category)||!/\b(reported|observed|occurring|occurred|resulting in|will result in)\b/i.test(a.description||'')||records.some(r=>r.id===a.id))continue;records.unshift({id:a.id,headline:a.headline||a.event,areaDesc:a.areaDesc,recordedAt:new Date().toISOString(),sourceSent:a.sent,rating:'LS-UR'});localStorage.setItem('nls-records',JSON.stringify(records))}$('#updated').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});notifyNew();render();$('#status').textContent='Live data connected · checks every minute'}catch(e){$('#updated').textContent='Data source delayed';$('#status').textContent='Could not reach a federal data source. Retrying automatically.';render()}finally{$('#loading').style.display='none'}}
+    async function notifyNew(){if(Notification.permission!=='granted'||!navigator.serviceWorker.controller)return;for(let a of alerts){if(seen.has(a.id))continue;navigator.serviceWorker.controller.postMessage({type:'NLS_ALERT',title:a.event,body:a.areaDesc,tag:a.id});seen.add(a.id)}localStorage.setItem('nls-seen',JSON.stringify([...seen].slice(-200)))}
+    document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');view=b.dataset.view;render()});
+    $('#notify').onclick=async()=>{if(!('Notification'in window)){alert('This browser does not support notifications.');return}let p=await Notification.requestPermission();$('#notify').textContent=p==='granted'?'Notifications enabled':'Notifications blocked';if(p==='granted')notifyNew()};
+    Promise.all([fetch('counties-10m.json').then(r=>r.json()),fetch('usgs-county-susceptibility.json').then(r=>r.json())]).then(([topo,sus])=>{window.topology=topo;susceptibility=sus;counties=topojson.feature(topo,topo.objects.counties);states=topojson.feature(topo,topo.objects.states);drawBase();return refresh()});
+    if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');setInterval(refresh,60000);
+  })();
+  </script>
+</body>
+</html>
